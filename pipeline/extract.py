@@ -1,52 +1,33 @@
 """Extract: pull live state vectors from the OpenSky Network REST API."""
-import os
 import time
 
 import requests
 
 STATES_URL = "https://opensky-network.org/api/states/all"
-TOKEN_URL = (
-    "https://auth.opensky-network.org/auth/realms/"
-    "opensky-network/protocol/openid-connect/token"
-)
 
-# OpenSky state-vector array positions -> (field, cast). We keep indices 0..11.
+# OpenSky state-vector array positions -> (index, field, cast). Indices are
+# explicit because we skip 12 (sensors) and 13 (geo_altitude) to reach squawk
+# at 14 — the transponder code that powers emergency detection (7500/7600/7700).
 # https://openskynetwork.github.io/opensky-api/rest.html#all-state-vectors
 _FIELDS = [
-    ("icao24", str), ("callsign", str), ("origin_country", str),
-    ("time_position", int), ("last_contact", int),
-    ("longitude", float), ("latitude", float), ("baro_altitude", float),
-    ("on_ground", bool), ("velocity", float), ("true_track", float),
-    ("vertical_rate", float),
+    (0, "icao24", str), (1, "callsign", str), (2, "origin_country", str),
+    (3, "time_position", int), (4, "last_contact", int),
+    (5, "longitude", float), (6, "latitude", float), (7, "baro_altitude", float),
+    (8, "on_ground", bool), (9, "velocity", float), (10, "true_track", float),
+    (11, "vertical_rate", float), (14, "squawk", str),
 ]
 
 _RETRYABLE = {429, 500, 502, 503, 504}
 
 
-def _get_token():
-    """OAuth2 client-credentials token, or None for anonymous access."""
-    cid, secret = os.getenv("OPENSKY_CLIENT_ID"), os.getenv("OPENSKY_CLIENT_SECRET")
-    if not cid or not secret:
-        return None
-    r = requests.post(
-        TOKEN_URL,
-        data={"grant_type": "client_credentials", "client_id": cid, "client_secret": secret},
-        timeout=30,
-    )
-    r.raise_for_status()
-    return r.json()["access_token"]
-
-
 def fetch_states(max_retries=5):
     """Return (batch_time, [row dicts]) for all states globally.
 
-    Exponential backoff on rate-limit / 5xx. Anonymous unless creds are in env.
+    Exponential backoff on rate-limit / 5xx. Anonymous access.
     """
-    token = _get_token()
-    headers = {"Authorization": f"Bearer {token}"} if token else {}
     delay = 2
     for _ in range(max_retries):
-        r = requests.get(STATES_URL, headers=headers, timeout=60)
+        r = requests.get(STATES_URL, timeout=60)
         if r.status_code in _RETRYABLE:
             time.sleep(delay)
             delay *= 2
@@ -62,8 +43,8 @@ def parse_states(states):
     rows = []
     for s in states:
         row = {}
-        for i, (name, cast) in enumerate(_FIELDS):
-            val = s[i] if i < len(s) else None
+        for idx, name, cast in _FIELDS:
+            val = s[idx] if idx < len(s) else None
             if val is None:
                 row[name] = None
             elif cast is bool:

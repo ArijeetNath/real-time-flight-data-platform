@@ -132,16 +132,28 @@ docker compose down -v
 |-----|---------|---------|
 | `INGEST_INTERVAL` | `300` | Seconds between batches in loop mode. |
 
-### Run without Docker (local dev)
+### Quick start without Docker
 
-You need a local Postgres reachable at
-`postgresql://flight:flight@localhost:5432/flight` (or set `DATABASE_URL`).
+Needs **Python 3.12** and a local **Postgres**. Create the role + database once
+(matches the built-in default DSN):
+
+```bash
+createuser flight --pwprompt      # enter password: flight
+createdb flight -O flight
+```
+
+Then bring it up:
 
 ```bash
 pip install -r requirements.txt
-python -m pipeline.run once                       # create schema + one batch
-streamlit run dashboard/app.py                    # dashboard on :8501
+python -m pipeline.run once       # create schema, pull one batch, build marts
+streamlit run dashboard/app.py    # dashboard on http://localhost:8501
 ```
+
+That's the whole app — the dashboard's **Refresh** button pulls new batches on
+demand, so no scheduler is needed. Want the background loop instead? Run
+`python -m pipeline.run loop`. Point at a different Postgres by setting
+`DATABASE_URL` (default `postgresql://flight:flight@localhost:5432/flight`).
 
 ## Tests
 

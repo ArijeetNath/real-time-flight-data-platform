@@ -30,9 +30,21 @@ def test_parse_handles_truncated_rows():
     assert len(rows) == 1
     assert rows[0]["baro_altitude"] is None
     assert rows[0]["longitude"] == -70.0
+    assert rows[0]["squawk"] is None       # index 14 absent on a short array
+
+
+def test_parse_captures_squawk_at_index_14():
+    # Full array: indices 12 (sensors) and 13 (geo_altitude) sit between
+    # vertical_rate (11) and squawk (14) and must be skipped.
+    full = ["abc123", "SWA42", "United States", 1, 2, -100.0, 40.0, 9000.0,
+            False, 200.0, 45.0, -3000.0, None, 9100.0, "7700", False, 0]
+    rows = parse_states([full])
+    assert rows[0]["squawk"] == "7700"        # emergency squawk survives
+    assert rows[0]["vertical_rate"] == -3000.0
 
 
 if __name__ == "__main__":
     test_parse_drops_rows_without_position()
     test_parse_handles_truncated_rows()
+    test_parse_captures_squawk_at_index_14()
     print("ok")

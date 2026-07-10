@@ -4,12 +4,14 @@ from pathlib import Path
 from pipeline.db import get_conn, run_sql_file
 
 SQL_DIR = Path(__file__).parent / "sql"
-SEEDS_CSV = Path(__file__).parent / "seeds" / "airports.csv"
+SEEDS_DIR = Path(__file__).parent / "seeds"
+AIRPORTS_CSV = SEEDS_DIR / "airports.csv"
+AIRLINES_CSV = SEEDS_DIR / "airlines.csv"
 
 _COLS = (
     "batch_time", "icao24", "callsign", "origin_country", "time_position",
     "last_contact", "longitude", "latitude", "baro_altitude", "on_ground",
-    "velocity", "true_track", "vertical_rate",
+    "velocity", "true_track", "vertical_rate", "squawk",
 )
 
 # COPY into a stage table, then INSERT ... ON CONFLICT so re-running a batch
@@ -24,19 +26,17 @@ ON CONFLICT (icao24, batch_time) DO NOTHING
 def init_db():
     with get_conn() as conn, conn.cursor() as cur:
         run_sql_file(cur, SQL_DIR / "schema.sql")
-        _seed_airports(cur)
+        _seed_csv(cur, "seed.airports", "(iata, name, country, latitude, longitude)", AIRPORTS_CSV)
+        _seed_csv(cur, "seed.airlines", "(icao, name)", AIRLINES_CSV)
 
 
-def _seed_airports(cur):
-    cur.execute("SELECT count(*) FROM seed.airports")
+def _seed_csv(cur, table, columns, csv_path):
+    cur.execute(f"SELECT count(*) FROM {table}")
     if cur.fetchone()[0] > 0:
         return
-    copy_sql = (
-        "COPY seed.airports (iata, name, country, latitude, longitude) "
-        "FROM STDIN WITH (FORMAT csv, HEADER true)"
-    )
+    copy_sql = f"COPY {table} {columns} FROM STDIN WITH (FORMAT csv, HEADER true)"
     with cur.copy(copy_sql) as cp:
-        cp.write(SEEDS_CSV.read_text(encoding="utf-8"))
+        cp.write(csv_path.read_text(encoding="utf-8"))
 
 
 def load_batch(batch_time, rows):

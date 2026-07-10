@@ -19,8 +19,6 @@ services:
     environment:
       DATABASE_URL: postgresql://flight:flight@postgres:5432/flight
       INGEST_INTERVAL: "300"
-      OPENSKY_CLIENT_ID: ${OPENSKY_CLIENT_ID:-}
-      OPENSKY_CLIENT_SECRET: ${OPENSKY_CLIENT_SECRET:-}
     depends_on:
       postgres:
         condition: service_healthy

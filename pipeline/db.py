@@ -10,8 +10,6 @@ def get_conn():
 
 
 def run_sql_file(cur, path):
-    # naive ';' splitter — fine because our .sql files have no
-    # semicolons inside literals or function bodies. Use a real parser only if that changes.
     sql = Path(path).read_text(encoding="utf-8")
     for stmt in sql.split(";"):
         if stmt.strip():

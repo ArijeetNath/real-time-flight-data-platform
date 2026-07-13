@@ -1,11 +1,3 @@
-"""Second page (auto-added to the sidebar by Streamlit's multipage support).
-
-Threshold-based anomaly alerts, computed live from marts.flights_current — no
-new SQL or schema: everything here is derived from columns the mart already has.
-Fixed thresholds are a coarse heuristic, not statistical outliers;
-the sidebar sliders are the calibration knob. Swap for per-type baselines
-(e.g. rolling percentiles) if false-positive rate matters.
-"""
 import pandas as pd
 import streamlit as st
 
@@ -35,7 +27,6 @@ climb = st.sidebar.slider("Steep climb (ft/min up)", 1000, 6000, 3000, 250)
 overspeed = st.sidebar.slider("Overspeed (kts)", 400, 800, 650, 10)
 ceiling = st.sidebar.slider("Extreme altitude (ft)", 40000, 60000, 50000, 1000)
 
-# Each rule is one boolean mask over the mart — label -> matching rows.
 rules = {
     f"Steep descent (< -{descent} fpm)": df.vertical_rate_fpm <= -descent,
     f"Steep climb (> {climb} fpm)": df.vertical_rate_fpm >= climb,

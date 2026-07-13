@@ -1,14 +1,3 @@
-"""Data Quality page (auto-added to the sidebar by Streamlit multipage).
-
-Per-batch reliability view from raw.state_vectors (append-only history) — no new
-SQL objects. Alerts when the latest batch drops below a coverage/freshness bar.
-
-Note: "position coverage" isn't measurable downstream — parse_states drops
-no-position rows at extract, so every stored row has a position by construction.
-We measure what survives: null coverage (altitude/callsign/squawk) and position
-staleness (time_position age). Add an extract-time counter of dropped rows if you
-want true ingest coverage.
-"""
 import pandas as pd
 import streamlit as st
 
@@ -27,8 +16,6 @@ def q(sql):
         return pd.DataFrame(cur.fetchall(), columns=cols)
 
 
-# 30s position-staleness window is a fixed heuristic; make it a slider
-# if OpenSky's update cadence varies for your use.
 df = q("""
     SELECT
         batch_time,

@@ -37,7 +37,6 @@ m[3].metric("Countries", int(latest.countries))
 m[4].metric("Avg altitude (ft)", int(latest.avg_altitude_ft or 0))
 m[5].metric("Emergencies", int(latest.emergencies or 0))
 
-# --- Emergency alerts (computed live from the current snapshot) ---
 st.subheader("⚠️ Active alerts")
 alerts = current[current["alert"].notna()]
 if alerts.empty:

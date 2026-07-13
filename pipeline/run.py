@@ -1,8 +1,3 @@
-"""Orchestration: run the ELT once, or loop on an interval.
-
-A sleep-loop is the smallest thing that satisfies "batch, re-runs on
-reload". Swap for Airflow/Dagster when you need retries, backfills, or DAGs.
-"""
 import argparse
 import os
 import time
@@ -37,7 +32,7 @@ def main():
     while True:
         try:
             run_once()
-        except Exception as e:  # keep looping; a skipped batch is harmless (idempotent)
+        except Exception as e:
             print(f"ingest error: {e}")
         time.sleep(args.interval)
 

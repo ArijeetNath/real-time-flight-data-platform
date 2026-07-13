@@ -1,10 +1,8 @@
--- Layered warehouse: raw (landing) -> staging (clean) -> marts (serve).
 CREATE SCHEMA IF NOT EXISTS raw;
 CREATE SCHEMA IF NOT EXISTS staging;
 CREATE SCHEMA IF NOT EXISTS marts;
 CREATE SCHEMA IF NOT EXISTS seed;
 
--- Append-only history: every batch is kept -> a cheap time-series of the sky.
 CREATE TABLE IF NOT EXISTS raw.state_vectors (
     batch_time      bigint      NOT NULL,
     icao24          text        NOT NULL,
@@ -24,11 +22,8 @@ CREATE TABLE IF NOT EXISTS raw.state_vectors (
     PRIMARY KEY (icao24, batch_time)
 );
 CREATE INDEX IF NOT EXISTS ix_raw_batch_time ON raw.state_vectors (batch_time);
--- Migrate pre-existing volumes: add columns IF NOT EXISTS never covers.
 ALTER TABLE raw.state_vectors ADD COLUMN IF NOT EXISTS squawk text;
 
--- Scratch table for the COPY -> ON CONFLICT idempotent load. Holds no durable
--- data (TRUNCATEd every load), so recreate it to always match _COLS.
 DROP TABLE IF EXISTS raw.state_vectors_stage;
 CREATE UNLOGGED TABLE raw.state_vectors_stage (
     batch_time bigint, icao24 text, callsign text, origin_country text,
@@ -38,7 +33,6 @@ CREATE UNLOGGED TABLE raw.state_vectors_stage (
     squawk text
 );
 
--- Reference data for enrichment (nearest airport).
 CREATE TABLE IF NOT EXISTS seed.airports (
     iata      text,
     name      text,
@@ -47,13 +41,11 @@ CREATE TABLE IF NOT EXISTS seed.airports (
     longitude double precision
 );
 
--- Reference data for enrichment (airline from ICAO callsign prefix).
 CREATE TABLE IF NOT EXISTS seed.airlines (
     icao    text,
     name    text
 );
 
--- Per-batch aggregates accumulate here (idempotent on batch_time).
 CREATE TABLE IF NOT EXISTS marts.activity_metrics (
     batch_time      bigint PRIMARY KEY,
     snapshot_ts     timestamptz,

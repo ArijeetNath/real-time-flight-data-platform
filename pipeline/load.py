@@ -1,4 +1,3 @@
-"""Load: land a batch of state vectors into raw (append-only, idempotent)."""
 from pathlib import Path
 
 from pipeline.db import get_conn, run_sql_file
@@ -14,8 +13,6 @@ _COLS = (
     "velocity", "true_track", "vertical_rate", "squawk",
 )
 
-# COPY into a stage table, then INSERT ... ON CONFLICT so re-running a batch
-# is a no-op (idempotent). COPY itself can't do ON CONFLICT; the stage does.
 _PROMOTE = f"""
 INSERT INTO raw.state_vectors ({", ".join(_COLS)})
 SELECT {", ".join(_COLS)} FROM raw.state_vectors_stage
